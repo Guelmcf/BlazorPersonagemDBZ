@@ -1,0 +1,119 @@
+@page "/personagem"
+@rendermode InteractiveAuto
+@inject HttpClient Http
+
+<PageTitle>Personagem DBZ</PageTitle>
+
+<h1>Personagem Dragon Ball Z</h1>
+
+<div class="mb-3 d-flex gap-2 align-items-end">
+    <div>
+        <label class="form-label fw-semibold">ID do Personagem</label>
+        <input type="number" class="form-control" min="1" @bind="personagemId" placeholder="Ex: 1" />
+    </div>
+    <button class="btn btn-warning" @onclick="BuscarPersonagem" disabled="@carregando">
+        @if (carregando)
+        {
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+        }
+        Buscar
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(erro))
+{
+    <div class="alert alert-danger">@erro</div>
+}
+
+@if (personagem is not null)
+{
+    <div class="card mt-3" style="max-width: 600px;">
+        <div class="card-header bg-warning text-dark fw-bold fs-5">
+            @personagem.Name
+        </div>
+        <div class="row g-0">
+            <div class="col-md-4 d-flex align-items-center justify-content-center p-2">
+                <img src="@personagem.Image" alt="@personagem.Name" class="img-fluid rounded" style="max-height:200px;" />
+            </div>
+            <div class="col-md-8">
+                <div class="card-body">
+                    <h5 class="card-title">@personagem.Name</h5>
+
+                    <p class="card-text mb-1">
+                        <span class="fw-semibold">Planeta de Origem:</span>
+                        @(personagem.OriginPlanet?.Name ?? "Desconhecido")
+                        @if (personagem.OriginPlanet?.IsDestroyed == true)
+                        {
+                            <span class="badge bg-danger ms-1">Destruído</span>
+                        }
+                    </p>
+
+                    <p class="card-text mb-1">
+                        <span class="fw-semibold">Raça:</span> @personagem.Race
+                    </p>
+
+                    <p class="card-text mb-1">
+                        <span class="fw-semibold">Ki:</span> @personagem.Ki
+                    </p>
+
+                    <p class="card-text mb-1">
+                        <span class="fw-semibold">Ki Máximo:</span> @personagem.MaxKi
+                    </p>
+
+                    @if (personagem.Transformations.Count > 0)
+                    {
+                        <div class="mt-2">
+                            <span class="fw-semibold">Transformações (@personagem.Transformations.Count):</span>
+                            <ul class="list-group list-group-flush mt-1">
+                                @foreach (var t in personagem.Transformations)
+                                {
+                                    <li class="list-group-item px-0 py-1 d-flex align-items-center gap-2">
+                                        <img src="@t.Image" alt="@t.Name" style="width:36px;height:36px;object-fit:contain;" />
+                                        <span>@t.Name</span>
+                                        <small class="text-muted ms-auto">Ki: @t.Ki</small>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="card-text mt-2 text-muted"><em>Sem transformações registradas.</em></p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private int personagemId = 1;
+    private BlazorDbzPersonagem.Client.Models.Personagem? personagem;
+    private bool carregando = false;
+    private string erro = string.Empty;
+
+    private async Task BuscarPersonagem()
+    {
+        carregando = true;
+        erro = string.Empty;
+        personagem = null;
+
+        try
+        {
+            personagem = await Http.GetFromJsonAsync<BlazorDbzPersonagem.Client.Models.Personagem>(
+                $"https://dragonball-api.com/api/characters/{personagemId}");
+        }
+        catch (HttpRequestException)
+        {
+            erro = $"Personagem com ID {personagemId} não encontrado ou erro na API.";
+        }
+        catch (Exception ex)
+        {
+            erro = $"Erro inesperado: {ex.Message}";
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+}
